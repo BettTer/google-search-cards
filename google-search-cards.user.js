@@ -2,7 +2,7 @@
 // @name           Google Search Cards
 // @name:zh-CN     Google 搜索卡片
 // @namespace      https://github.com/BettTer/google-search-cards
-// @version        2026.11.19.9
+// @version        2026.11.19.16
 // @description    View Google web, news, video, and Lens results in two columns, with support for the collapsible sidebar.
 // @description:zh-CN 将 Google 网页、新闻、视频和 Lens 搜索结果排成两列，支持可折叠侧栏。
 // @license        MIT
@@ -26,14 +26,27 @@
     [data-gcards] body {
       --gcards-card-surface: light-dark(transparent, #2b2d32);
       --gcards-card-outline: light-dark(transparent, #555961);
-      --gcards-rank-color: light-dark(#e8e8e8, #aeb3bd);
+      --gcards-rank-color: light-dark(#70757a, #e6e9ef);
+      --gcards-rank-opacity: .8;
+      /* Distance from a right-docked thumbnail to the card's inline-end edge. A
+         constant, so thumbnails of rows with different heights line up; the
+         card's text sits 20px from the other edge. */
+      --gcards-thumb-inset: 20px;
+      /* Soft halo in the card's tone, so the digits stay readable where they
+         overlap a thumbnail of their own brightness (white headshots, dark photos). */
+      --gcards-rank-halo: light-dark(rgb(255 255 255 / .85), rgb(0 0 0 / .6));
+      /* Inline-end padding of every numbered card. The rank is centred in the
+         rail-sized square at the top of it, so neither a thumbnail nor text can
+         cover it. The digits shrink to fit this width (see ::after). */
+      --gcards-rank-rail: 60px;
     }
 
     [data-gcards] body[data-dt="1"],
     html[data-gcards][data-dt="1"] body {
       --gcards-card-surface: #2b2d32;
       --gcards-card-outline: #555961;
-      --gcards-rank-color: #aeb3bd;
+      --gcards-rank-color: #e6e9ef;
+      --gcards-rank-halo: rgb(0 0 0 / .6);
     }
 
     [data-gcards] #rcnt[data-gcards-results] {
@@ -65,22 +78,30 @@
       margin-inline: 0;
     }
 
+    /* Row-major grid: 1 | 2, 3 | 4, ... (multi-column layout would fill column by column). */
     [data-gcards] #rcnt [data-gcards-list] {
-      display: block !important;
-      column-count: 2 !important;
-      column-width: auto !important;
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      grid-auto-rows: auto;
+      align-items: stretch;
       column-gap: 20px;
     }
 
     [data-gcards][data-gcards-narrow] #rcnt [data-gcards-list] {
-      column-count: 1 !important;
+      grid-template-columns: minmax(0, 1fr) !important;
     }
 
     [data-gcards] [data-gcards-list] > [data-gcards-item] {
       box-sizing: border-box;
       min-inline-size: 0;
       max-inline-size: 100%;
-      break-inside: avoid;
+    }
+
+    /* A wrapper item passes the row height on so both cards of a row match. */
+    [data-gcards] [data-gcards-list] > [data-gcards-item]:has(> [data-gcards-card]) {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: 1fr;
     }
 
     [data-gcards] [data-gcards-list] > .ULSxyf {
@@ -89,7 +110,7 @@
     }
 
     [data-gcards] [data-gcards-list] > [data-gcards-wide] {
-      column-span: all;
+      grid-column: 1 / -1;
     }
 
     [data-gcards] [data-gcards-card] {
@@ -100,18 +121,30 @@
       max-inline-size: 100% !important;
       margin-block: 5px 10px;
       padding-block: 15px;
-      padding-inline: 20px;
+      padding-inline: 20px var(--gcards-rank-rail);
       border-radius: 5px;
       box-shadow: 1px 1px 5px rgb(0 0 0 / 30%);
       vertical-align: top;
     }
 
-    [data-gcards] [data-gcards-card] .srKDX > .LnCrMe {
-      align-self: end;
+    /* Web thumbnails (.LnCrMe is the grid item beside the text) and any other
+       right-docked thumbnail found by findThumbnail. */
+    [data-gcards] [data-gcards-card] .srKDX > .LnCrMe,
+    [data-gcards] [data-gcards-rank] [data-gcards-thumb] {
+      align-self: center;
+    }
+
+    /* Set per card by thumbShift(): centres the thumbnail vertically and moves it
+       towards the rank until it is --gcards-thumb-inset from the edge. A transform
+       changes no layout, so the card keeps its size and the text its wrapping; the
+       rank (z-index 1) overlaps the thumbnail's corner. */
+    [data-gcards] [data-gcards-rank] [data-gcards-thumb] {
+      translate: var(--gcards-thumb-shift, none);
     }
 
     [data-gcards] :is([data-gcards-card], [data-gcards-rank]) {
       background-color: var(--gcards-card-surface);
+      padding-inline-end: var(--gcards-rank-rail);
     }
 
     [data-gcards] :is([data-gcards-card], [data-gcards-rank]):not(:focus-visible) {
@@ -121,17 +154,31 @@
 
     [data-gcards] [data-gcards-rank] {
       position: relative;
+      /* Own stacking context, so the rank's z-index competes only with this card's
+         content: it is drawn over the thumbnail's corner, never over another card. */
+      isolation: isolate;
     }
 
+    [data-gcards] [data-gcards-rank-digits="3"] { --gcards-rank-digits: 3; }
+    [data-gcards] [data-gcards-rank-digits="4"] { --gcards-rank-digits: 4; }
+
+    /* Centred in the rail-sized square at the top inline-end corner. */
     [data-gcards] [data-gcards-rank]::after {
       content: attr(data-gcards-rank) / "";
       position: absolute;
-      inset-block-start: 6px;
-      inset-inline-end: 6px;
+      z-index: 1;
+      inset-block-start: 0;
+      inset-inline-end: 0;
+      inline-size: var(--gcards-rank-rail);
+      line-height: var(--gcards-rank-rail);
+      text-align: center;
       color: var(--gcards-rank-color);
+      opacity: var(--gcards-rank-opacity);
+      text-shadow: 0 0 4px var(--gcards-rank-halo);
       font-family: Arial, sans-serif;
-      font-size: 4.5em;
-      line-height: 1;
+      /* Sized for two Arial digits (.556em each) with 8px kept clear, so one- and
+         two-digit ranks share a height; three or more digits shrink to fit. */
+      font-size: calc((var(--gcards-rank-rail) - 8px) / (.556 * max(2, var(--gcards-rank-digits, 2))));
       font-variant-numeric: tabular-nums;
       pointer-events: none;
     }
@@ -145,6 +192,9 @@
   let results, resultList, sidebar, layoutFrame;
   let waitingForInitialSidebarClose;
   const layoutObserver = new ResizeObserver(scheduleLayout);
+  // Numbered cards: a height change moves the centred thumbnail (see thumbShift).
+  const cardObserver = new ResizeObserver(schedule);
+  const observedCards = new WeakSet();
   const MEDIA_CARDS = { news: '.WCv1we', videos: '.PmEWq.vt6azd' };
   const sidebarLabels = ['Open sidebar', 'Close sidebar', 'AI Mode history'];
   const sidebarSelector = sidebarLabels.flatMap(label =>
@@ -253,11 +303,71 @@
     if (p.has('lns_mode') || p.has('vsrid')) return 'lens';
     return 'web';
   }
-  function findResultList(root, mediaCard) {
-    if (!root || !mediaCard) return root;
-    const first = root.querySelector(mediaCard);
-    // News and Videos can keep all entries inside one results module.
-    return first ? first.closest('#rso > .MjjYud > [data-hveid]') || root : null;
+  function findResultLists(outer, root, mediaCard) {
+    if (!root) return [];
+    if (!mediaCard) return [root];
+    const cards = [...outer.querySelectorAll(mediaCard)].filter(card => !card.closest('#rhs'));
+    if (!cards.length) return [];
+    // News and Videos keep each page of entries inside one results module, and
+    // continuous scrolling appends further modules. Take the first card's module
+    // (its nearest ancestor holding at least two entries) as the template and put
+    // every card into the ancestor at that same depth.
+    const holdsCard = node => node.matches(mediaCard) || node.querySelector(mediaCard);
+    let depth = 1;
+    for (let node = cards[0].parentElement; node !== root && node !== outer && node.parentElement;
+         node = node.parentElement) {
+      if ([...node.children].filter(holdsCard).length >= 2) break;
+      depth++;
+    }
+    const lists = new Set();
+    for (const card of cards) {
+      let list = card;
+      for (let i = 0; i < depth && list.parentElement && list.parentElement !== outer; i++) {
+        list = list.parentElement;
+      }
+      lists.add(list);
+    }
+    // Nested lists would lay whole modules out in columns; the earlier list wins.
+    const kept = [];
+    for (const list of lists) {
+      if (!kept.some(other => other.contains(list) || list.contains(other))) kept.push(list);
+    }
+    return kept;
+  }
+  function findThumbnail(card) {
+    // A thumbnail docked at the inline-end edge. Favicons are too small to
+    // count; video thumbnails sit on the other side. Returns the wrapper that
+    // sits beside the text (the flex or grid item) and the image's current box.
+    const box = card.getBoundingClientRect();
+    const rtl = getComputedStyle(card).direction === 'rtl';
+    for (const img of card.querySelectorAll('img')) {
+      const rect = img.getBoundingClientRect();
+      const gap = rtl ? rect.left - box.left : box.right - rect.right;
+      if (rect.width < 40 || rect.height < 40 || gap > 100) continue;
+      let node = img;
+      while (node.parentElement !== card &&
+             node.parentElement.getBoundingClientRect().width <= rect.width + 24) {
+        node = node.parentElement;
+      }
+      return { node, rect };
+    }
+    return null;
+  }
+  function thumbShift(card, { node, rect }) {
+    // Centre the thumbnail vertically and align its inline-end edge to the fixed
+    // inset, so thumbnails of rows with different heights line up. It never
+    // moves inward past its natural position, so it cannot overlap the text.
+    const box = card.getBoundingClientRect();
+    const style = getComputedStyle(card);
+    const inset = parseFloat(style.getPropertyValue('--gcards-thumb-inset')) || 20;
+    // `rect` includes the shift already applied; take it off to get the natural box.
+    const applied = getComputedStyle(node).translate;
+    const [dx = 0, dy = 0] = applied === 'none' ? [] : applied.split(' ').map(parseFloat);
+    const y = box.top + (box.height - rect.height) / 2 - (rect.top - dy);
+    const x = style.direction === 'rtl'
+      ? Math.min(0, box.left + inset - (rect.left - dx))
+      : Math.max(0, box.right - inset - (rect.right - dx));
+    return `${Math.round(x)}px ${Math.round(y)}px`;
   }
   function findImagePack(item) {
     const known = item.querySelector('.sSsjz');
@@ -290,7 +400,8 @@
       style.id = STYLE_ID; style.textContent = CSS;
       (document.head || root).append(style);
     }
-    const mode = modeFor(new URL(location.href));
+    const url = new URL(location.href);
+    const mode = modeFor(url);
     style.media = mode ? 'all' : 'not all';
     if (mode !== lastMode) { clear(); lastMode = mode; }
     if (!mode) {
@@ -300,30 +411,41 @@
     }
     root.setAttribute('data-gcards', mode);
     // Drop detached references when Google replaces a whole results subtree.
-    for (const node of marks) if (!node.isConnected) marks.delete(node);
+    for (const node of marks) {
+      if (node.isConnected) continue;
+      marks.delete(node);
+      if (observedCards.delete(node)) cardObserver.unobserve(node);
+    }
     const mediaCard = MEDIA_CARDS[mode];
-    const list = findResultList(document.querySelector('#rso'), mediaCard);
     const outer = document.querySelector('#rcnt');
+    const lists = outer ? findResultLists(outer, document.querySelector('#rso'), mediaCard) : [];
+    const list = lists[0];
     if (resultList && resultList !== list) clear();
-    if (!list || !outer || !outer.contains(list)) {
+    if (!list || !outer.contains(list)) {
       watchLayout(null, null);
       return;
     }
-    for (let node = list.parentElement; node && node !== outer; node = node.parentElement) {
-      mark(node, 'data-gcards-chain');
+    for (const node of lists) {
+      for (let chain = node.parentElement; chain && chain !== outer; chain = chain.parentElement) {
+        mark(chain, 'data-gcards-chain');
+      }
+      mark(node, 'data-gcards-list');
     }
     mark(outer, 'data-gcards-results');
-    mark(list, 'data-gcards-list');
     watchLayout(outer, list);
     const cardSelector = mediaCard || '.g, .ts, .vt6azd';
-    let rank = 0;
-    for (const item of list.children) {
+    // Paginated tabs carry the offset of the first result in `start` (page 2 is
+    // start=10), so numbering continues from the previous page. Modules appended
+    // by continuous scrolling are counted on through the single `rank` below.
+    let rank = Math.max(0, Number.parseInt(url.searchParams.get('start'), 10) || 0);
+    const numbered = [];
+    for (const item of lists.flatMap(node => [...node.children])) {
       if (['STYLE','SCRIPT','LINK'].includes(item.tagName)) continue;
       const previousRank = item.hasAttribute('data-gcards-rank') ? item : item.querySelector('[data-gcards-rank]');
       const empty = !item.querySelector('a,img,video,iframe,canvas,h2,h3,[role=heading],[role=button]') && !hasText(item);
       if (empty) {
         mark(item, 'data-gcards-empty');
-        previousRank?.removeAttribute('data-gcards-rank');
+        if (previousRank) unrank(previousRank);
         continue;
       }
       item.removeAttribute('data-gcards-empty');
@@ -334,20 +456,49 @@
       const resultTitle = item.querySelector('a[href] h3, a[href] .LC20lb');
       const exactMatch = mode === 'exact' && (item.matches('.YxbOwd') || item.querySelector('.YxbOwd'));
       const numberedCard = !pack && (resultTitle || exactMatch || (mediaCard && card)) ? card || item : null;
-      if (previousRank && previousRank !== numberedCard) previousRank.removeAttribute('data-gcards-rank');
-      if (numberedCard) numberedCard.setAttribute('data-gcards-rank', String(++rank));
+      if (previousRank && previousRank !== numberedCard) unrank(previousRank);
+      if (numberedCard) {
+        const number = String(++rank);
+        numberedCard.setAttribute('data-gcards-rank', number);
+        numberedCard.setAttribute('data-gcards-rank-digits', String(number.length));
+        numbered.push(numberedCard);
+      }
       // Re-evaluate when Google replaces a crop's results in the same wrapper.
       for (const node of item.querySelectorAll('[data-gcards-pack-chain]')) {
         node.removeAttribute('data-gcards-pack-chain');
       }
+      // Blocks without a rank (People also ask, carousels, stat tables, image
+      // packs) are tall or wide; spanning both columns keeps them from leaving a
+      // hole beside themselves and from pushing the numbered cards out of step.
+      if (pack || !numberedCard) mark(item, 'data-gcards-wide');
+      else item.removeAttribute('data-gcards-wide');
       if (pack) {
-        mark(item, 'data-gcards-wide');
         for (let node = pack.parentElement; node && node !== item; node = node.parentElement) {
           mark(node, 'data-gcards-pack-chain');
         }
-      } else item.removeAttribute('data-gcards-wide');
-
+      }
     }
+    // Measure every card first, then write, so the layout is forced only once.
+    const thumbs = [];
+    for (const card of numbered) {
+      const thumb = findThumbnail(card);
+      if (thumb) thumbs.push({ ...thumb, shift: thumbShift(card, thumb) });
+      // Row heights change with the neighbour's content; follow them.
+      if (!observedCards.has(card)) {
+        observedCards.add(card);
+        cardObserver.observe(card);
+      }
+    }
+    for (const { node, shift } of thumbs) {
+      mark(node, 'data-gcards-thumb');
+      if (node.style.getPropertyValue('--gcards-thumb-shift') !== shift) {
+        node.style.setProperty('--gcards-thumb-shift', shift);
+      }
+    }
+  }
+  function unrank(node) {
+    node.removeAttribute('data-gcards-rank');
+    node.removeAttribute('data-gcards-rank-digits');
   }
   function schedule() {
     if (timer === undefined) timer = setTimeout(update, 100);
@@ -358,6 +509,10 @@
   });
   document.addEventListener('transitionend', event => {
     if (sidebar && (sidebar.contains(event.target) || event.target.contains(sidebar))) schedule();
+  }, true);
+  // Lazy thumbnails only get their size once loaded; re-run so they can be marked.
+  document.addEventListener('load', event => {
+    if (event.target instanceof HTMLImageElement && event.target.closest('[data-gcards-rank]')) schedule();
   }, true);
   addEventListener('resize', schedule);
   addEventListener('popstate', schedule);
