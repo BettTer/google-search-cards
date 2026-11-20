@@ -1,10 +1,10 @@
 // ==UserScript==
-// @name           Google Search Cards
-// @name:zh-CN     Google 搜索卡片
+// @name           Google Search: More Results at a Glance
+// @name:zh-CN     Google 搜索：一屏多看
 // @namespace      https://github.com/BettTer/google-search-cards
-// @version        2026.11.19.16
-// @description    View Google web, news, video, and Lens results in two columns, with support for the collapsible sidebar.
-// @description:zh-CN 将 Google 网页、新闻、视频和 Lens 搜索结果排成两列，支持可折叠侧栏。
+// @version        2026.11.20.4
+// @description    See more Google results at once with numbered, two-column cards. Compare results with less scrolling.
+// @description:zh-CN 把 Google 搜索结果排成带编号的两列卡片，一屏多看几条，少滚几下。
 // @license        MIT
 // @homepageURL    https://github.com/BettTer/google-search-cards
 // @supportURL     https://github.com/BettTer/google-search-cards/issues
@@ -28,12 +28,8 @@
       --gcards-card-outline: light-dark(transparent, #555961);
       --gcards-rank-color: light-dark(#70757a, #e6e9ef);
       --gcards-rank-opacity: .8;
-      /* Distance from a right-docked thumbnail to the card's inline-end edge. A
-         constant, so thumbnails of rows with different heights line up; the
-         card's text sits 20px from the other edge. */
       --gcards-thumb-inset: 20px;
-      /* Soft halo in the card's tone, so the digits stay readable where they
-         overlap a thumbnail of their own brightness (white headshots, dark photos). */
+      --gcards-thumb-gap: 12px;
       --gcards-rank-halo: light-dark(rgb(255 255 255 / .85), rgb(0 0 0 / .6));
       /* Inline-end padding of every numbered card. The rank is centred in the
          rail-sized square at the top of it, so neither a thumbnail nor text can
@@ -91,25 +87,29 @@
       grid-template-columns: minmax(0, 1fr) !important;
     }
 
-    [data-gcards] [data-gcards-list] > [data-gcards-item] {
+    [data-gcards] [data-gcards-list] > [data-gcards-group] {
+      display: contents !important;
+    }
+
+    [data-gcards] :is([data-gcards-list], [data-gcards-group]) > [data-gcards-item] {
       box-sizing: border-box;
       min-inline-size: 0;
       max-inline-size: 100%;
     }
 
     /* A wrapper item passes the row height on so both cards of a row match. */
-    [data-gcards] [data-gcards-list] > [data-gcards-item]:has(> [data-gcards-card]) {
+    [data-gcards] :is([data-gcards-list], [data-gcards-group]) > [data-gcards-item]:has(> [data-gcards-card]) {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: 1fr;
     }
 
-    [data-gcards] [data-gcards-list] > .ULSxyf {
+    [data-gcards] :is([data-gcards-list], [data-gcards-group]) > .ULSxyf {
       margin-block-end: 0;
       padding: 5px;
     }
 
-    [data-gcards] [data-gcards-list] > [data-gcards-wide] {
+    [data-gcards] :is([data-gcards-list], [data-gcards-group]) > [data-gcards-wide] {
       grid-column: 1 / -1;
     }
 
@@ -127,24 +127,42 @@
       vertical-align: top;
     }
 
-    /* Web thumbnails (.LnCrMe is the grid item beside the text) and any other
-       right-docked thumbnail found by findThumbnail. */
-    [data-gcards] [data-gcards-card] .srKDX > .LnCrMe,
-    [data-gcards] [data-gcards-rank] [data-gcards-thumb] {
-      align-self: center;
-    }
-
-    /* Set per card by thumbShift(): centres the thumbnail vertically and moves it
-       towards the rank until it is --gcards-thumb-inset from the edge. A transform
-       changes no layout, so the card keeps its size and the text its wrapping; the
-       rank (z-index 1) overlaps the thumbnail's corner. */
-    [data-gcards] [data-gcards-rank] [data-gcards-thumb] {
-      translate: var(--gcards-thumb-shift, none);
-    }
-
     [data-gcards] :is([data-gcards-card], [data-gcards-rank]) {
       background-color: var(--gcards-card-surface);
       padding-inline-end: var(--gcards-rank-rail);
+    }
+
+    [data-gcards] [data-gcards-card] .srKDX > .LnCrMe:not([data-gcards-thumb]) {
+      align-self: center;
+    }
+
+    /* Reserve one lane for the thumbnail. Its top offset is independent of row height. */
+    [data-gcards] [data-gcards-rank][data-gcards-thumb-side] {
+      --gcards-thumb-lane: calc(var(--gcards-thumb-width) + var(--gcards-thumb-inset) + var(--gcards-thumb-gap));
+      min-block-size: calc(var(--gcards-thumb-top) + var(--gcards-thumb-height) + 15px);
+    }
+
+    [data-gcards] [data-gcards-rank][data-gcards-thumb-side="end"] {
+      padding-inline-end: max(var(--gcards-rank-rail), var(--gcards-thumb-lane));
+    }
+
+    [data-gcards] [data-gcards-rank][data-gcards-thumb-side="start"] {
+      padding-inline-start: var(--gcards-thumb-lane);
+    }
+
+    /* The original wrapper stays in the result link, but no longer takes a second lane. */
+    [data-gcards] [data-gcards-rank][data-gcards-thumb-side] [data-gcards-thumb] {
+      position: absolute;
+      inset: 0 auto auto 0;
+      box-sizing: border-box;
+      inline-size: var(--gcards-thumb-box-width) !important;
+      margin: 0 !important;
+      translate: var(--gcards-thumb-shift, none);
+    }
+
+    /* Google's compact News template already reserves space beside its summary. */
+    [data-gcards] [data-gcards-thumb-side] .aI5QMe .SoAPf .UqSP2b {
+      margin-inline-end: 0;
     }
 
     [data-gcards] :is([data-gcards-card], [data-gcards-rank]):not(:focus-visible) {
@@ -154,8 +172,7 @@
 
     [data-gcards] [data-gcards-rank] {
       position: relative;
-      /* Own stacking context, so the rank's z-index competes only with this card's
-         content: it is drawn over the thumbnail's corner, never over another card. */
+      /* Keep the rank's stacking order local to its own card. */
       isolation: isolate;
     }
 
@@ -183,7 +200,7 @@
       pointer-events: none;
     }
 
-    [data-gcards] [data-gcards-list] > [data-gcards-empty] {
+    [data-gcards] :is([data-gcards-list], [data-gcards-group]) > [data-gcards-empty] {
       display: none !important;
     }
   `;
@@ -192,10 +209,15 @@
   let results, resultList, sidebar, layoutFrame;
   let waitingForInitialSidebarClose;
   const layoutObserver = new ResizeObserver(scheduleLayout);
-  // Numbered cards: a height change moves the centred thumbnail (see thumbShift).
+  // Reposition thumbnails when a card's native content reflows.
   const cardObserver = new ResizeObserver(schedule);
   const observedCards = new WeakSet();
   const MEDIA_CARDS = { news: '.WCv1we', videos: '.PmEWq.vt6azd' };
+  const DEFAULT_THUMBNAIL_LAYOUT = { side: 'end', top: 'var(--gcards-rank-rail)' };
+  const TAB_THUMBNAIL_LAYOUT = { videos: { side: 'start', top: '15px' } };
+  const THUMBNAIL_SLOT = '.srKDX > .LnCrMe, .lSfe4c > .gpjNTe';
+  const NON_RESULTS = 'style, script, link';
+  const SEARCH_FILTERS = ['q', 'udm', 'tbm', 'tbs', 'lr', 'cr', 'filter', 'safe', 'nfpr', 'hl', 'gl', 'vsrid'];
   const sidebarLabels = ['Open sidebar', 'Close sidebar', 'AI Mode history'];
   const sidebarSelector = sidebarLabels.flatMap(label =>
     [`[aria-label="${label}" i]`, `[title="${label}" i]`, `[data-tooltip="${label}" i]`]).join(',');
@@ -334,39 +356,100 @@
     }
     return kept;
   }
-  function findThumbnail(card) {
-    // A thumbnail docked at the inline-end edge. Favicons are too small to
-    // count; video thumbnails sit on the other side. Returns the wrapper that
-    // sits beside the text (the flex or grid item) and the image's current box.
-    const box = card.getBoundingClientRect();
-    const rtl = getComputedStyle(card).direction === 'rtl';
+  function findWebResultGroups(list) {
+    return [...list.children].filter(node => {
+      if (!node.matches('div:not([class], [id], [role], [jscontroller])')) return false;
+      const children = [...node.children].filter(child => !child.matches(NON_RESULTS));
+      return children.every(child => child.matches('.MjjYud, .ULSxyf')) &&
+        children.filter(child => child.matches('.MjjYud') && child.querySelector('a[href] h3, a[href] .LC20lb')).length >= 2;
+    });
+  }
+  function pageOffset(url) {
+    const start = Number(url.searchParams.get('start'));
+    return Number.isSafeInteger(start) && start >= 0 ? start : 0;
+  }
+  function pageNumbering(url, mode) {
+    const params = url.searchParams;
+    const filters = [...params].filter(([name]) => SEARCH_FILTERS.includes(name) || name.startsWith('as_'));
+    filters.sort(([left], [right]) => left.localeCompare(right));
+    const key = `google-cards:page-counts:${JSON.stringify([mode, params.get('num') || '10', filters])}`;
+    const offset = pageOffset(url);
+    let pages = {};
+    try {
+      pages = JSON.parse(sessionStorage.getItem(key)) || {};
+    } catch {
+      // Storage can be disabled. Fall back to the requested offset.
+    }
+    let previous = offset;
+    let count = 0;
+    // Each saved page links to the actual next page and records how many cards it showed.
+    while (Array.isArray(pages[previous])) {
+      const [start, cards] = pages[previous];
+      if (!Number.isSafeInteger(start) || start < 0 || start >= previous ||
+          !Number.isSafeInteger(cards) || cards < 0) break;
+      previous = start;
+      count += cards;
+    }
+    return { key, pages, offset, rank: previous + count };
+  }
+  function savePageCount({ key, pages, offset }, count) {
+    const nextLink = document.querySelector('a#pnnext[href]');
+    if (!nextLink) return;
+    const next = pageOffset(new URL(nextLink.href, location.href));
+    if (next <= offset || (pages[next]?.[0] === offset && pages[next]?.[1] === count)) return;
+    pages[next] = [offset, count];
+    try {
+      sessionStorage.setItem(key, JSON.stringify(pages));
+    } catch {
+      // Number this page even if the browser cannot save its count.
+    }
+  }
+  function findThumbnail(card, current, { side }) {
+    const images = [];
     for (const img of card.querySelectorAll('img')) {
       const rect = img.getBoundingClientRect();
-      const gap = rtl ? rect.left - box.left : box.right - rect.right;
-      if (rect.width < 40 || rect.height < 40 || gap > 100) continue;
-      let node = img;
+      const slot = img.closest(THUMBNAIL_SLOT);
+      const visibleThumbnail = rect.width >= 40 && rect.height >= 40;
+      const reservedSize = (!rect.width || !rect.height) &&
+        (Number(img.getAttribute('width')) >= 40 && Number(img.getAttribute('height')) >= 40);
+      // Native media slots also count when their images are small or still loading.
+      if (visibleThumbnail || reservedSize || (slot && card.contains(slot))) {
+        images.push({ img, rect, slot });
+      }
+    }
+    // A pair or any larger gallery keeps its original grid space and order.
+    if (images.length !== 1) return null;
+    const [{ img, rect, slot }] = images;
+    if (rect.width < 40 || rect.height < 40) return null;
+    const box = card.getBoundingClientRect();
+    if (box.width - rect.width < 190) return null;
+    const left = (side === 'start') !== (getComputedStyle(card).direction === 'rtl');
+    let node = current?.contains(img) ? current : slot;
+    if (!node || !card.contains(node)) {
+      const gap = left ? rect.left - box.left : box.right - rect.right;
+      if (gap < -12 || gap > 100) return null;
+      node = img;
       while (node.parentElement !== card &&
-             node.parentElement.getBoundingClientRect().width <= rect.width + 24) {
+             node.parentElement.getBoundingClientRect().width <= rect.width + 24 &&
+             !node.parentElement.querySelector('h3, .LC20lb, [role="heading"]')) {
         node = node.parentElement;
       }
-      return { node, rect };
     }
-    return null;
+    // Keep unfamiliar wrappers in flow if they contain other image elements.
+    if (!slot && node.querySelectorAll('img').length > 1) return null;
+    return { card, img, node, left, rect };
   }
-  function thumbShift(card, { node, rect }) {
-    // Centre the thumbnail vertically and align its inline-end edge to the fixed
-    // inset, so thumbnails of rows with different heights line up. It never
-    // moves inward past its natural position, so it cannot overlap the text.
+  function thumbShift({ card, img, node, left }) {
     const box = card.getBoundingClientRect();
+    const rect = img.getBoundingClientRect();
     const style = getComputedStyle(card);
     const inset = parseFloat(style.getPropertyValue('--gcards-thumb-inset')) || 20;
+    const top = parseFloat(style.getPropertyValue('--gcards-thumb-top'));
     // `rect` includes the shift already applied; take it off to get the natural box.
     const applied = getComputedStyle(node).translate;
     const [dx = 0, dy = 0] = applied === 'none' ? [] : applied.split(' ').map(parseFloat);
-    const y = box.top + (box.height - rect.height) / 2 - (rect.top - dy);
-    const x = style.direction === 'rtl'
-      ? Math.min(0, box.left + inset - (rect.left - dx))
-      : Math.max(0, box.right - inset - (rect.right - dx));
+    const y = box.top + top - rect.top + dy;
+    const x = left ? box.left + inset - rect.left + dx : box.right - inset - rect.right + dx;
     return `${Math.round(x)}px ${Math.round(y)}px`;
   }
   function findImagePack(item) {
@@ -425,6 +508,9 @@
       watchLayout(null, null);
       return;
     }
+    const groups = new Set(mode === 'web' ? findWebResultGroups(list) : []);
+    if ([...list.children].some(node => node.hasAttribute('data-gcards-group') !== groups.has(node))) clear();
+    for (const group of groups) mark(group, 'data-gcards-group');
     for (const node of lists) {
       for (let chain = node.parentElement; chain && chain !== outer; chain = chain.parentElement) {
         mark(chain, 'data-gcards-chain');
@@ -434,13 +520,12 @@
     mark(outer, 'data-gcards-results');
     watchLayout(outer, list);
     const cardSelector = mediaCard || '.g, .ts, .vt6azd';
-    // Paginated tabs carry the offset of the first result in `start` (page 2 is
-    // start=10), so numbering continues from the previous page. Modules appended
-    // by continuous scrolling are counted on through the single `rank` below.
-    let rank = Math.max(0, Number.parseInt(url.searchParams.get('start'), 10) || 0);
+    const pagination = pageNumbering(url, mode);
+    let rank = pagination.rank;
     const numbered = [];
-    for (const item of lists.flatMap(node => [...node.children])) {
-      if (['STYLE','SCRIPT','LINK'].includes(item.tagName)) continue;
+    const items = lists.flatMap(node => [...node.children]).flatMap(node => groups.has(node) ? [...node.children] : [node]);
+    for (const item of items) {
+      if (item.matches(NON_RESULTS)) continue;
       const previousRank = item.hasAttribute('data-gcards-rank') ? item : item.querySelector('[data-gcards-rank]');
       const empty = !item.querySelector('a,img,video,iframe,canvas,h2,h3,[role=heading],[role=button]') && !hasText(item);
       if (empty) {
@@ -478,19 +563,35 @@
         }
       }
     }
-    // Measure every card first, then write, so the layout is forced only once.
-    const thumbs = [];
-    for (const card of numbered) {
-      const thumb = findThumbnail(card);
-      if (thumb) thumbs.push({ ...thumb, shift: thumbShift(card, thumb) });
-      // Row heights change with the neighbour's content; follow them.
+    savePageCount(pagination, numbered.length);
+    const thumbnailLayout = { ...DEFAULT_THUMBNAIL_LAYOUT, ...TAB_THUMBNAIL_LAYOUT[mode] };
+    // Read native dimensions before reserving space and taking thumbnails out of the flow.
+    const thumbnails = numbered.map(card => {
+      const current = card.querySelector('[data-gcards-thumb]');
+      const thumb = findThumbnail(card, current, thumbnailLayout);
+      const width = thumb && Math.max(thumb.rect.width, thumb.node.getBoundingClientRect().width);
+      return { card, current, thumb, width };
+    });
+    for (const { card, current, thumb, width } of thumbnails) {
       if (!observedCards.has(card)) {
         observedCards.add(card);
         cardObserver.observe(card);
       }
+      if (current && current !== thumb?.node) current.removeAttribute('data-gcards-thumb');
+      if (!thumb) {
+        card.removeAttribute('data-gcards-thumb-side');
+        continue;
+      }
+      mark(card, 'data-gcards-thumb-side');
+      card.setAttribute('data-gcards-thumb-side', thumbnailLayout.side);
+      card.style.setProperty('--gcards-thumb-top', thumbnailLayout.top);
+      card.style.setProperty('--gcards-thumb-width', `${Math.ceil(thumb.rect.width)}px`);
+      card.style.setProperty('--gcards-thumb-height', `${Math.ceil(thumb.rect.height)}px`);
+      mark(thumb.node, 'data-gcards-thumb');
+      thumb.node.style.setProperty('--gcards-thumb-box-width', `${Math.ceil(width)}px`);
     }
-    for (const { node, shift } of thumbs) {
-      mark(node, 'data-gcards-thumb');
+    const shifts = thumbnails.filter(({ thumb }) => thumb).map(({ thumb }) => [thumb.node, thumbShift(thumb)]);
+    for (const [node, shift] of shifts) {
       if (node.style.getPropertyValue('--gcards-thumb-shift') !== shift) {
         node.style.setProperty('--gcards-thumb-shift', shift);
       }
@@ -516,6 +617,7 @@
   }, true);
   addEventListener('resize', schedule);
   addEventListener('popstate', schedule);
+  addEventListener('pageshow', schedule);
   addEventListener('hashchange', schedule);
   // pushState can change the tab mode without a DOM mutation.
   let lastURL = location.href;

@@ -1,49 +1,53 @@
-# Google Search Cards · Google 搜索卡片
+# Google Search: More Results at a Glance · Google 搜索：一屏多看
 
 [简体中文](#简体中文) · [English](#english)
 
 ## 简体中文
 
-把 Google 网页、新闻、视频搜索结果和 Google Lens 的「完全匹配」排成两列。Google 侧栏展开或收起后，卡片跟着可用空间调整。窄窗口使用单列。
+**把 Google 搜索结果排成带编号的两列卡片，一屏多看几条，少滚几下。**
 
-- 搜索卡片逐行排列，同一行的卡片等高。图片集合、问答等模块独占整行，不计入结果编号。
-- 编号显示在卡片右上角，跨页时接续。右侧缩略图贴齐卡片内侧边距。
-- 支持 Google 夜间模式，卡片边线和编号会随主题调整。
-- Lens 的「全部」页面保留两列网页结果，图片集合占整行。
-- Google 图片搜索和 Lens 的「视觉匹配」使用原生布局。
-- 侧栏在刷新前已展开时，首次收起会同步 Google 的原生 Logo 状态。
+宽屏搜索时，单列结果往往只用到屏幕左边。这个脚本把右边的空间也用起来，让你在同一屏比较更多网站的标题和摘要。
 
-### 安装
+- **一屏多看几条。** 网页、新闻、视频和 Google Lens 的「完全匹配」结果都可以排成两列。卡片逐行排列，同一行等高。打开 Google 侧栏时，卡片跟着可用空间调整，窗口太窄时自动回到单列。
+- **一眼知道看到第几条。** 每条结果的右上角都有编号。在同一标签页依次翻页或加载更多结果时，编号按实际卡片数量接着数。图片集合和问答模块不占号。
+- **缩略图在同一搜索标签内对齐。** 单张图按卡片顶边定位，多张图作为一组保留在原有图片区。
+- **适配浅色和夜间主题。** Lens「全部」里的网页结果排成两列，图片集合独占一行。Google 图片搜索和 Lens「视觉匹配」沿用原生布局。
+
+### 安装和更新
 
 1. 安装 [Tampermonkey](https://www.tampermonkey.net/)。
-2. 打开 [google-search-cards.user.js](./google-search-cards.user.js)，点 **Raw**，在 Tampermonkey 中确认安装。
-3. 在 Tampermonkey 中启用脚本，刷新 Google 搜索结果页。如果同一页还启用了其他 Google 卡片脚本或 Stylus 样式，先停用它们。
+2. 打开 [google-search-cards.user.js](./google-search-cards.user.js)，点击 **Raw**，在 Tampermonkey 中确认安装或更新。
+3. 刷新 Google 搜索结果页。如果启用了其他会修改 Google 搜索布局的脚本或 Stylus 样式，请先停用它们。
 
-已经装过的用户可以点 **Raw** 并确认 **Update（更新）**。如果旧版是手动粘贴安装的，可以在 **Tampermonkey → 管理面板 → Google Search Cards** 里用新版完整替换现有代码，按 **⌘S**（Mac）或 **Ctrl+S**（Windows／Linux）保存，再刷新 Google 搜索结果页。
+如果旧版是手动粘贴安装的，可以在 **Tampermonkey → 管理面板** 中打开现有脚本，用新版完整替换代码并保存。
 
-支持 `google.com`、`google.ca`、`google.co.uk` 和 `google.com.hk` 的 `www` 搜索页面。脚本只在本地调整页面布局，不采集或发送查询。
+支持 `google.com`、`google.ca`、`google.co.uk` 和 `google.com.hk` 的 `www` 搜索页面。脚本在浏览器内调整布局，翻页计数保存在当前标签页，脚本不会发送搜索查询。
 
-这份独立实现以 MIT 许可证发布。感谢 [iwyvi 的多栏搜索样式](https://userstyles.world/style/3155) 提供的灵感。
+感谢 [iwyvi 的多栏搜索样式](https://userstyles.world/style/3155) 带来的灵感。这个脚本是独立实现，采用 [MIT 许可证](./LICENSE)。
+
+[GitHub 源码](https://github.com/BettTer/google-search-cards) · [反馈问题](https://github.com/BettTer/google-search-cards/issues)
 
 ## English
 
-Display Google web, news, video, and Lens Exact matches results in two columns. Cards resize when the Google sidebar opens or closes. Narrow windows use one column.
+**See more Google results at once with numbered, two-column cards. Compare results with less scrolling.**
 
-- Results are laid out left to right with equal-height cards in each row. Image collections and question modules span both columns and do not count toward the result sequence.
-- Numbers appear at the top right and continue onto later results pages. Right-side thumbnails align to the card's inner margin.
-- Card borders and result numbers adapt to Google's dark theme.
-- In Lens All, image collections span the full row and web results stay in two columns.
-- Google Images and Lens Visual matches retain Google's layout.
-- After reloading with the sidebar expanded, the first close synchronizes Google's native logo state.
+Google's single-column layout leaves a lot of space unused on a wide screen. This script puts that space to work so you can compare more titles and snippets on one screen.
 
-### Install
+- **See more results on one screen.** Web, News, Videos, and Google Lens Exact matches use two columns when there's room. Cards are the same height within each row. They resize when the Google sidebar opens or closes, and narrow windows switch to one column.
+- **Keep your place.** Each result has a number in the top right. When you page through results in the same browser tab, numbering picks up where you left off and continues as more results load. Image collections and question modules don't count toward the sequence.
+- **Keep thumbnails aligned within each search tab.** Single thumbnails align relative to the top of the card. Multi-image results keep their original gallery layout.
+- **Use either Google theme.** Cards adapt to light and dark mode. In Lens All, web results use two columns and image collections span the full row. Google Images and Lens Visual matches retain Google's layout.
+
+### Install and update
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/).
-2. Open [google-search-cards.user.js](./google-search-cards.user.js), choose **Raw**, and confirm installation in Tampermonkey.
-3. Enable the script and refresh your Google search results. Disable any other Google card script or Stylus style that changes the same page.
+2. Open [google-search-cards.user.js](./google-search-cards.user.js), choose **Raw**, and confirm installation or update in Tampermonkey.
+3. Refresh your Google search results. Disable any other userscript or Stylus style that changes the same layout.
 
-To update an existing installation, open **Raw** and confirm **Update**. If you installed by pasting the source, open **Tampermonkey → Dashboard → Google Search Cards**, replace the existing code, and press **⌘S** (Mac) or **Ctrl+S** (Windows/Linux). Then refresh the search results page.
+If you installed an earlier version by pasting the source, open the existing script in the **Tampermonkey Dashboard**, replace its contents with the new version, and save.
 
-Supports the `www` search pages on `google.com`, `google.ca`, `google.co.uk`, and `google.com.hk`. The script changes layout locally and does not collect or send queries.
+Supports the `www` search pages on `google.com`, `google.ca`, `google.co.uk`, and `google.com.hk`. The script runs in your browser. It keeps pagination counts in the current tab and does not transmit search queries.
 
-This independent implementation is available under the MIT License. Thanks to [iwyvi's multi-column search style](https://userstyles.world/style/3155) for the inspiration.
+Thanks to [iwyvi's multi-column search style](https://userstyles.world/style/3155) for the inspiration. This independent implementation is released under the [MIT License](./LICENSE).
+
+[Source code on GitHub](https://github.com/BettTer/google-search-cards) · [Report an issue](https://github.com/BettTer/google-search-cards/issues)
