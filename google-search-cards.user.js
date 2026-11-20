@@ -2,7 +2,7 @@
 // @name           Google Search Cards
 // @name:zh-CN     Google 搜索卡片
 // @namespace      https://github.com/BettTer/google-search-cards
-// @version        2026.11.19.4
+// @version        2026.11.19.6
 // @description    View Google Search results in two columns, with support for the collapsible sidebar and Google Lens.
 // @description:zh-CN 将 Google 搜索结果排成两列，支持可折叠侧栏和 Google Lens。
 // @license        MIT
@@ -44,21 +44,23 @@
     [data-gcards] :is([data-gcards-chain], [data-gcards-pack-chain], [data-gcards-list]) {
       box-sizing: border-box;
       inline-size: 100% !important;
-      min-inline-size: 0;
-      max-inline-size: 100%;
+      min-inline-size: 0 !important;
+      max-inline-size: 100% !important;
     }
 
     [data-gcards] #rcnt [data-gcards-chain] {
       margin-inline: 0;
     }
 
-    [data-gcards] [data-gcards-list] {
-      columns: 2;
+    [data-gcards] #rso[data-gcards-list] {
+      display: block !important;
+      column-count: 2 !important;
+      column-width: auto !important;
       column-gap: 20px;
     }
 
-    [data-gcards][data-gcards-narrow] [data-gcards-list] {
-      columns: 1;
+    [data-gcards][data-gcards-narrow] #rso[data-gcards-list] {
+      column-count: 1 !important;
     }
 
     [data-gcards] [data-gcards-list] > [data-gcards-item] {
@@ -98,13 +100,12 @@
     [data-gcards] [data-gcards-rank]::after {
       content: attr(data-gcards-rank) / "";
       position: absolute;
-      inset-block-start: 12px;
-      inset-inline-end: 12px;
-      padding: 2px 6px;
-      border-radius: 6px;
-      background: color-mix(in srgb, CanvasText 7%, Canvas);
-      color: color-mix(in srgb, CanvasText 65%, Canvas);
-      font: 600 12px/1.4 system-ui, sans-serif;
+      inset-block-start: 6px;
+      inset-inline-end: 6px;
+      color: color-mix(in srgb, CanvasText 9%, Canvas);
+      font-family: Arial, sans-serif;
+      font-size: 4.5em;
+      line-height: 1;
       font-variant-numeric: tabular-nums;
       pointer-events: none;
     }
