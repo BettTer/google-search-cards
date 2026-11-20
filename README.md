@@ -11,7 +11,7 @@
 - **一屏多看几条。** 网页、新闻、视频和 Google Lens 的「完全匹配」结果都可以排成两列。卡片逐行排列，同一行等高。打开 Google 侧栏时，卡片跟着可用空间调整，窗口太窄时自动回到单列。
 - **一眼知道看到第几条。** 每条结果的右上角都有编号。在同一标签页依次翻页或加载更多结果时，编号按实际卡片数量接着数。图片集合和问答模块不占号。
 - **缩略图在同一搜索标签内对齐。** 单张图按卡片顶边定位，多张图作为一组保留在原有图片区。
-- **适配浅色和夜间主题。** Lens「全部」里的网页结果排成两列，图片集合独占一行。Google 图片搜索和 Lens「视觉匹配」沿用原生布局。
+- **适配浅色和夜间主题。** Lens「全部」里的网页结果排成两列，图片集合独占一行。「视觉匹配」的图片在宽屏排成两列，保留原有的预览控件。Google 图片搜索沿用原生布局。
 
 ### 安装和更新
 
@@ -36,7 +36,7 @@ Google's single-column layout leaves a lot of space unused on a wide screen. Thi
 - **See more results on one screen.** Web, News, Videos, and Google Lens Exact matches use two columns when there's room. Cards are the same height within each row. They resize when the Google sidebar opens or closes, and narrow windows switch to one column.
 - **Keep your place.** Each result has a number in the top right. When you page through results in the same browser tab, numbering picks up where you left off and continues as more results load. Image collections and question modules don't count toward the sequence.
 - **Keep thumbnails aligned within each search tab.** Single thumbnails align relative to the top of the card. Multi-image results keep their original gallery layout.
-- **Use either Google theme.** Cards adapt to light and dark mode. In Lens All, web results use two columns and image collections span the full row. Google Images and Lens Visual matches retain Google's layout.
+- **Use either Google theme.** Cards adapt to light and dark mode. In Lens All, web results use two columns and image collections span the full row. Visual matches uses two image columns on wider screens and keeps Google's preview controls. Google Images retains Google's layout.
 
 ### Install and update
 

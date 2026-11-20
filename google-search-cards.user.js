@@ -2,7 +2,7 @@
 // @name           Google Search: More Results at a Glance
 // @name:zh-CN     Google 搜索：一屏多看
 // @namespace      https://github.com/BettTer/google-search-cards
-// @version        2026.11.20.4
+// @version        2026.11.20.5
 // @description    See more Google results at once with numbered, two-column cards. Compare results with less scrolling.
 // @description:zh-CN 把 Google 搜索结果排成带编号的两列卡片，一屏多看几条，少滚几下。
 // @license        MIT
@@ -104,7 +104,7 @@
       grid-template-rows: 1fr;
     }
 
-    [data-gcards] :is([data-gcards-list], [data-gcards-group]) > .ULSxyf {
+    [data-gcards] :is([data-gcards-list], [data-gcards-group]) > .ULSxyf:not([data-gcards-card]) {
       margin-block-end: 0;
       padding: 5px;
     }
@@ -125,6 +125,32 @@
       border-radius: 5px;
       box-shadow: 1px 1px 5px rgb(0 0 0 / 30%);
       vertical-align: top;
+    }
+
+    [data-gcards="exact"] [data-gcards-card] .YxbOwd {
+      padding-inline: 0;
+      background: transparent;
+    }
+
+    /* Visual matches uses a Google-generated masonry grid. Reuse its tiles in
+       the shared row layout, with a frame that shows the entire thumbnail. */
+    [data-gcards="visual"] [data-gcards-list] {
+      grid-auto-rows: auto !important;
+      justify-content: stretch;
+    }
+
+    [data-gcards="visual"] [data-gcards-list] > [data-snf] {
+      grid-area: auto !important;
+      block-size: auto !important;
+    }
+
+    [data-gcards="visual"] [data-gcards-list] .R8rd3e {
+      aspect-ratio: 16 / 9;
+      block-size: auto;
+    }
+
+    [data-gcards="visual"] [data-gcards-list] .R8rd3e img {
+      object-fit: contain;
     }
 
     [data-gcards] :is([data-gcards-card], [data-gcards-rank]) {
@@ -316,17 +342,21 @@
     if (url.pathname !== '/search') return '';
     const p = url.searchParams, mode = p.get('udm'), tab = p.get('tbm');
     if (mode === '48') return 'exact';
+    if (mode === '44') return 'visual';
     if (mode === '26') return 'lens';
     if (mode === 'vids' || (!mode && tab === 'vid')) return 'videos';
     if (!mode && tab === 'nws') return 'news';
-    // Other tabs, especially Images and Visual matches, keep Google's own layout.
+    // Other tabs, including regular Google Images, keep Google's own layout.
     if (mode && mode !== '14') return '';
     if (p.has('tbm')) return '';
     if (p.has('lns_mode') || p.has('vsrid')) return 'lens';
     return 'web';
   }
-  function findResultLists(outer, root, mediaCard) {
+  function findResultLists(outer, root, mode, mediaCard) {
     if (!root) return [];
+    if (mode === 'visual') {
+      return [...root.querySelectorAll('.srKDX[data-snc]:has(> [data-snf] .R8rd3e [role="button"] img)')];
+    }
     if (!mediaCard) return [root];
     const cards = [...outer.querySelectorAll(mediaCard)].filter(card => !card.closest('#rhs'));
     if (!cards.length) return [];
@@ -484,7 +514,8 @@
       (document.head || root).append(style);
     }
     const url = new URL(location.href);
-    const mode = modeFor(url);
+    let mode = modeFor(url);
+    if (mode === 'visual' && document.querySelector('#main[data-wide-viewer="1"]')) mode = '';
     style.media = mode ? 'all' : 'not all';
     if (mode !== lastMode) { clear(); lastMode = mode; }
     if (!mode) {
@@ -501,7 +532,7 @@
     }
     const mediaCard = MEDIA_CARDS[mode];
     const outer = document.querySelector('#rcnt');
-    const lists = outer ? findResultLists(outer, document.querySelector('#rso'), mediaCard) : [];
+    const lists = outer ? findResultLists(outer, document.querySelector('#rso'), mode, mediaCard) : [];
     const list = lists[0];
     if (resultList && resultList !== list) clear();
     if (!list || !outer.contains(list)) {
@@ -519,6 +550,7 @@
     }
     mark(outer, 'data-gcards-results');
     watchLayout(outer, list);
+    if (mode === 'visual') return;
     const cardSelector = mediaCard || '.g, .ts, .vt6azd';
     const pagination = pageNumbering(url, mode);
     let rank = pagination.rank;
@@ -535,11 +567,11 @@
       }
       item.removeAttribute('data-gcards-empty');
       mark(item, 'data-gcards-item');
-      const card = item.matches(cardSelector) ? item : item.querySelector(cardSelector);
+      const exactMatch = mode === 'exact' && (item.matches('.YxbOwd') || item.querySelector('.YxbOwd'));
+      const card = exactMatch || item.matches(cardSelector) ? item : item.querySelector(cardSelector);
       if (card) mark(card, 'data-gcards-card');
       const pack = mediaCard && card ? null : findImagePack(item);
       const resultTitle = item.querySelector('a[href] h3, a[href] .LC20lb');
-      const exactMatch = mode === 'exact' && (item.matches('.YxbOwd') || item.querySelector('.YxbOwd'));
       const numberedCard = !pack && (resultTitle || exactMatch || (mediaCard && card)) ? card || item : null;
       if (previousRank && previousRank !== numberedCard) unrank(previousRank);
       if (numberedCard) {
@@ -564,6 +596,7 @@
       }
     }
     savePageCount(pagination, numbered.length);
+    if (mode === 'exact') return;
     const thumbnailLayout = { ...DEFAULT_THUMBNAIL_LAYOUT, ...TAB_THUMBNAIL_LAYOUT[mode] };
     // Read native dimensions before reserving space and taking thumbnails out of the flow.
     const thumbnails = numbered.map(card => {
@@ -606,7 +639,7 @@
   }
   new MutationObserver(schedule).observe(document, {
     childList: true, subtree: true,
-    attributeFilter: ['aria-expanded', 'aria-label', 'aria-hidden', 'title', 'data-tooltip', 'data-lhsxi', 'inert']
+    attributeFilter: ['aria-expanded', 'aria-label', 'aria-hidden', 'title', 'data-tooltip', 'data-lhsxi', 'data-wide-viewer', 'inert']
   });
   document.addEventListener('transitionend', event => {
     if (sidebar && (sidebar.contains(event.target) || event.target.contains(sidebar))) schedule();
