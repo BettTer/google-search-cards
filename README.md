@@ -4,9 +4,10 @@
 
 ## 简体中文
 
-把 Google 网页搜索结果和 Google Lens 的「完全匹配」排成两列。Google 侧栏展开或收起后，卡片跟着可用空间调整。窄窗口使用单列。
+把 Google 网页、新闻、视频搜索结果和 Google Lens 的「完全匹配」排成两列。Google 侧栏展开或收起后，卡片跟着可用空间调整。窄窗口使用单列。
 
-- 网页结果右上角显示连续的浅色编号，图片集合和问答模块不占号。
+- 搜索结果右上角显示连续编号。图片集合和问答模块不占号。
+- 在 Google 夜间模式下，卡片使用深色背景、更清晰的边线和浅色编号。
 - Lens 的「全部」页面让图片集合占整行，网页结果保留两列。
 - Google 图片搜索和 Lens 的「视觉匹配」使用原生布局。
 - 侧栏在刷新前已展开时，首次收起会同步 Google 的原生 Logo 状态。
@@ -23,9 +24,10 @@
 
 ## English
 
-Display Google web results and Google Lens Exact matches in two columns. Cards resize when the Google sidebar opens or closes. Narrow windows use one column.
+Display Google web, news, video, and Lens Exact matches results in two columns. Cards resize when the Google sidebar opens or closes. Narrow windows use one column.
 
-- Results have pale numbers in the top right in Google's result order. Image collections and question modules do not count toward the sequence.
+- Results have consecutive numbers in the top right. Image collections and question modules do not count toward the sequence.
+- In Google's dark theme, cards have a dark surface, a clearer outline, and pale numbers.
 - In Lens All, image collections span the full row and web results stay in two columns.
 - Google Images and Lens Visual matches retain Google's layout.
 - After reloading with the sidebar expanded, the first close synchronizes Google's native logo state.

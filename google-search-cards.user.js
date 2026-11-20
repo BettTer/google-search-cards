@@ -2,9 +2,9 @@
 // @name           Google Search Cards
 // @name:zh-CN     Google 搜索卡片
 // @namespace      https://github.com/BettTer/google-search-cards
-// @version        2026.11.19.6
-// @description    View Google Search results in two columns, with support for the collapsible sidebar and Google Lens.
-// @description:zh-CN 将 Google 搜索结果排成两列，支持可折叠侧栏和 Google Lens。
+// @version        2026.11.19.9
+// @description    View Google web, news, video, and Lens results in two columns, with support for the collapsible sidebar.
+// @description:zh-CN 将 Google 网页、新闻、视频和 Lens 搜索结果排成两列，支持可折叠侧栏。
 // @license        MIT
 // @homepageURL    https://github.com/BettTer/google-search-cards
 // @supportURL     https://github.com/BettTer/google-search-cards/issues
@@ -23,6 +23,19 @@
   if (document.getElementById(STYLE_ID)) return;
 
   const CSS = `
+    [data-gcards] body {
+      --gcards-card-surface: light-dark(transparent, #2b2d32);
+      --gcards-card-outline: light-dark(transparent, #555961);
+      --gcards-rank-color: light-dark(#e8e8e8, #aeb3bd);
+    }
+
+    [data-gcards] body[data-dt="1"],
+    html[data-gcards][data-dt="1"] body {
+      --gcards-card-surface: #2b2d32;
+      --gcards-card-outline: #555961;
+      --gcards-rank-color: #aeb3bd;
+    }
+
     [data-gcards] #rcnt[data-gcards-results] {
       display: block;
       box-sizing: border-box;
@@ -52,14 +65,14 @@
       margin-inline: 0;
     }
 
-    [data-gcards] #rso[data-gcards-list] {
+    [data-gcards] #rcnt [data-gcards-list] {
       display: block !important;
       column-count: 2 !important;
       column-width: auto !important;
       column-gap: 20px;
     }
 
-    [data-gcards][data-gcards-narrow] #rso[data-gcards-list] {
+    [data-gcards][data-gcards-narrow] #rcnt [data-gcards-list] {
       column-count: 1 !important;
     }
 
@@ -82,15 +95,28 @@
     [data-gcards] [data-gcards-card] {
       display: inline-block;
       box-sizing: border-box;
-      inline-size: 100%;
-      min-inline-size: 0;
-      max-inline-size: 100%;
+      inline-size: 100% !important;
+      min-inline-size: 0 !important;
+      max-inline-size: 100% !important;
       margin-block: 5px 10px;
       padding-block: 15px;
       padding-inline: 20px;
       border-radius: 5px;
       box-shadow: 1px 1px 5px rgb(0 0 0 / 30%);
       vertical-align: top;
+    }
+
+    [data-gcards] [data-gcards-card] .srKDX > .LnCrMe {
+      align-self: end;
+    }
+
+    [data-gcards] :is([data-gcards-card], [data-gcards-rank]) {
+      background-color: var(--gcards-card-surface);
+    }
+
+    [data-gcards] :is([data-gcards-card], [data-gcards-rank]):not(:focus-visible) {
+      outline: 1px solid var(--gcards-card-outline);
+      outline-offset: -1px;
     }
 
     [data-gcards] [data-gcards-rank] {
@@ -102,7 +128,7 @@
       position: absolute;
       inset-block-start: 6px;
       inset-inline-end: 6px;
-      color: color-mix(in srgb, CanvasText 9%, Canvas);
+      color: var(--gcards-rank-color);
       font-family: Arial, sans-serif;
       font-size: 4.5em;
       line-height: 1;
@@ -119,6 +145,7 @@
   let results, resultList, sidebar, layoutFrame;
   let waitingForInitialSidebarClose;
   const layoutObserver = new ResizeObserver(scheduleLayout);
+  const MEDIA_CARDS = { news: '.WCv1we', videos: '.PmEWq.vt6azd' };
   const sidebarLabels = ['Open sidebar', 'Close sidebar', 'AI Mode history'];
   const sidebarSelector = sidebarLabels.flatMap(label =>
     [`[aria-label="${label}" i]`, `[title="${label}" i]`, `[data-tooltip="${label}" i]`]).join(',');
@@ -215,14 +242,22 @@
   }
   function modeFor(url) {
     if (url.pathname !== '/search') return '';
-    const p = url.searchParams, mode = p.get('udm');
+    const p = url.searchParams, mode = p.get('udm'), tab = p.get('tbm');
     if (mode === '48') return 'exact';
     if (mode === '26') return 'lens';
+    if (mode === 'vids' || (!mode && tab === 'vid')) return 'videos';
+    if (!mode && tab === 'nws') return 'news';
     // Other tabs, especially Images and Visual matches, keep Google's own layout.
     if (mode && mode !== '14') return '';
     if (p.has('tbm')) return '';
     if (p.has('lns_mode') || p.has('vsrid')) return 'lens';
     return 'web';
+  }
+  function findResultList(root, mediaCard) {
+    if (!root || !mediaCard) return root;
+    const first = root.querySelector(mediaCard);
+    // News and Videos can keep all entries inside one results module.
+    return first ? first.closest('#rso > .MjjYud > [data-hveid]') || root : null;
   }
   function findImagePack(item) {
     const known = item.querySelector('.sSsjz');
@@ -266,8 +301,10 @@
     root.setAttribute('data-gcards', mode);
     // Drop detached references when Google replaces a whole results subtree.
     for (const node of marks) if (!node.isConnected) marks.delete(node);
-    const list = document.querySelector('#rso');
+    const mediaCard = MEDIA_CARDS[mode];
+    const list = findResultList(document.querySelector('#rso'), mediaCard);
     const outer = document.querySelector('#rcnt');
+    if (resultList && resultList !== list) clear();
     if (!list || !outer || !outer.contains(list)) {
       watchLayout(null, null);
       return;
@@ -278,27 +315,27 @@
     mark(outer, 'data-gcards-results');
     mark(list, 'data-gcards-list');
     watchLayout(outer, list);
+    const cardSelector = mediaCard || '.g, .ts, .vt6azd';
     let rank = 0;
     for (const item of list.children) {
       if (['STYLE','SCRIPT','LINK'].includes(item.tagName)) continue;
+      const previousRank = item.hasAttribute('data-gcards-rank') ? item : item.querySelector('[data-gcards-rank]');
       const empty = !item.querySelector('a,img,video,iframe,canvas,h2,h3,[role=heading],[role=button]') && !hasText(item);
       if (empty) {
         mark(item, 'data-gcards-empty');
-        item.removeAttribute('data-gcards-rank');
+        previousRank?.removeAttribute('data-gcards-rank');
         continue;
       }
       item.removeAttribute('data-gcards-empty');
       mark(item, 'data-gcards-item');
-      const card = item.matches('.g, .ts, .vt6azd') ? item : item.querySelector('.g, .ts, .vt6azd');
+      const card = item.matches(cardSelector) ? item : item.querySelector(cardSelector);
       if (card) mark(card, 'data-gcards-card');
-      const pack = findImagePack(item);
+      const pack = mediaCard && card ? null : findImagePack(item);
       const resultTitle = item.querySelector('a[href] h3, a[href] .LC20lb');
       const exactMatch = mode === 'exact' && (item.matches('.YxbOwd') || item.querySelector('.YxbOwd'));
-      if (!pack && (resultTitle || exactMatch)) {
-        item.setAttribute('data-gcards-rank', String(++rank));
-      } else {
-        item.removeAttribute('data-gcards-rank');
-      }
+      const numberedCard = !pack && (resultTitle || exactMatch || (mediaCard && card)) ? card || item : null;
+      if (previousRank && previousRank !== numberedCard) previousRank.removeAttribute('data-gcards-rank');
+      if (numberedCard) numberedCard.setAttribute('data-gcards-rank', String(++rank));
       // Re-evaluate when Google replaces a crop's results in the same wrapper.
       for (const node of item.querySelectorAll('[data-gcards-pack-chain]')) {
         node.removeAttribute('data-gcards-pack-chain');
